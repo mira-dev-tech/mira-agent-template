@@ -1,0 +1,11 @@
+{
+  "name": "Meu Agente",
+  "enabled": true,
+  "kind": "eino_chat",
+  "role": "primary",
+  "model": "",
+  "temperature": 0.3,
+  "maxToolIterations": 12,
+  "systemPromptFile": "system-prompt.md",
+  "mcp": {}
+}

@@ -1,0 +1,11 @@
+[
+  {
+    "slug": "vtex",
+    "name": "VTEX — minha loja",
+    "credentialsEnv": {
+      "X-VTEX-Account": "VTEX_ACCOUNT",
+      "X-VTEX-API-AppKey": "VTEX_APPKEY",
+      "X-VTEX-API-AppToken": "VTEX_APPTOKEN"
+    }
+  }
+]

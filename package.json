@@ -1,0 +1,17 @@
+{
+  "name": "mira-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Config-as-code para gerenciar seu agente Mirá Connect via API",
+  "bin": {
+    "mira": "bin/mira.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "mira": "node bin/mira.mjs",
+    "validate": "node bin/mira.mjs validate"
+  }
+}

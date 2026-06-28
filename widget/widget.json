@@ -1,0 +1,12 @@
+{
+  "name": "Atendimento",
+  "allowedOrigins": ["https://exemplo.com.br"],
+  "appearance": {
+    "primaryColor": "#0aa85a",
+    "position": "bottom-right",
+    "welcomeMessage": "Oi! 👋 Como posso ajudar?",
+    "locale": "pt-BR",
+    "launcherLabel": "Fale conosco",
+    "logoUrl": ""
+  }
+}
