@@ -19,16 +19,15 @@ mira.config.json         ← para qual ambiente/agente você publica (sem segred
 
 ## Começando
 
-1. **Configurar segredos** — copie `.env.example` para `.env` e preencha (o `.env` é ignorado pelo git):
-   ```bash
-   cp .env.example .env
-   # edite .env: MIRA_EMAIL / MIRA_PASSWORD e, se usar VTEX, VTEX_ACCOUNT/APPKEY/APPTOKEN
-   ```
-2. **Login**:
+1. **Login** (abre o navegador):
    ```bash
    node bin/mira.mjs login
    ```
-   > Em breve o `login` abrirá o navegador para você autenticar (sem senha no `.env`).
+   O CLI abre uma URL no navegador; você entra na sua conta e clica em **Autorizar**. O token fica
+   salvo em `.mira/credentials.json` (ignorado pelo git). Em CI/não-interativo, defina
+   `MIRA_EMAIL`/`MIRA_PASSWORD` e o `login` usa email+senha automaticamente.
+2. **Segredos de integração** (se usar VTEX) — copie `.env.example` para `.env` e preencha
+   `VTEX_ACCOUNT/APPKEY/APPTOKEN` (o `.env` é ignorado pelo git; usado só no `apply`).
 3. **Descobrir seus IDs** e preencher `mira.config.json` (`agentId`, `inboxId`):
    ```bash
    node bin/mira.mjs status
@@ -53,7 +52,7 @@ Cada `apply` cria uma **nova versão** no histórico do agente — dá para reve
 
 | Comando | O que faz |
 |---|---|
-| `mira login` | Autentica e guarda o token em `.mira/credentials.json` (ignorado pelo git) |
+| `mira login` | Autentica no navegador (device flow) e guarda o token em `.mira/credentials.json` |
 | `mira status` | Mostra usuário, org ativa, modelos permitidos e lista seus agentes/inboxes |
 | `mira pull` | Baixa a config atual (agente + widget) para os arquivos locais |
 | `mira validate` | Valida os arquivos locais (offline) |

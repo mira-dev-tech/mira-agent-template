@@ -7,6 +7,7 @@ import fs from "node:fs"
 import path from "node:path"
 import readline from "node:readline"
 import { fileURLToPath } from "node:url"
+import { spawn } from "node:child_process"
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const p = (...a) => path.join(ROOT, ...a)
@@ -72,20 +73,53 @@ function authedToken() {
 const a = (method, route, body) => api(method, route, { body, token: authedToken() })
 
 // ---------- login ----------
-async function cmdLogin() {
+function openBrowser(url) {
+  const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open"
+  try { spawn(cmd, [url], { stdio: "ignore", detached: true, shell: process.platform === "win32" }).unref() } catch { /* abra manualmente */ }
+}
+
+// Login no navegador (device authorization). É o padrão.
+async function loginDevice() {
   const cfg = loadConfig()
-  // Auth interina (Fase 1): email+senha → JWT. Será trocado por login-no-navegador (device flow).
-  let email = process.env.MIRA_EMAIL || ""
-  let password = process.env.MIRA_PASSWORD || ""
-  if (!email) email = await ask("Email: ")
-  if (!password) password = await ask("Senha: ", { silent: true })
-  if (!email || !password) die("email e senha são obrigatórios (ou defina MIRA_EMAIL/MIRA_PASSWORD)")
+  const start = await api("POST", "/api/v1/cli/device/start", { base: cfg.apiBaseUrl, body: { client_name: "mira CLI" } })
+  log(`\nAbra no navegador para autorizar:\n  ${C.cyan}${start.verification_uri_complete}${C.rst}`)
+  log(`Código: ${C.cyan}${start.user_code}${C.rst}\n`)
+  openBrowser(start.verification_uri_complete)
+  const deadline = Date.now() + (start.expires_in || 600) * 1000
+  const interval = Math.max(2, start.interval || 5) * 1000
+  process.stdout.write("Aguardando autorização")
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, interval))
+    process.stdout.write(".")
+    let res
+    try { res = await api("GET", `/api/v1/cli/device/poll?device_code=${encodeURIComponent(start.device_code)}`, { base: cfg.apiBaseUrl }) } catch { continue }
+    if (res.status === "approved") {
+      log("")
+      saveCreds({ token: res.token, orgId: res.org_id || null, orgName: res.org_name || null, savedAt: new Date().toISOString() })
+      ok(`autenticado · org: ${res.org_name || res.org_id || "—"}`)
+      log(`${C.dim}token salvo em .mira/credentials.json (gitignored)${C.rst}`)
+      return
+    }
+    if (res.status === "expired") { log(""); die("código expirou — rode `mira login` de novo") }
+  }
+  log(""); die("tempo esgotado — rode `mira login` de novo")
+}
+
+// Fallback não-interativo (CI): email+senha → JWT, quando MIRA_EMAIL/MIRA_PASSWORD estão setados.
+async function loginPassword() {
+  const cfg = loadConfig()
+  const email = process.env.MIRA_EMAIL, password = process.env.MIRA_PASSWORD
   const res = await api("POST", "/api/v1/auth/login", { body: { email, password }, base: cfg.apiBaseUrl })
   if (!res.token) die("login falhou (sem token)")
   const org = res.user?.activeOrganization
   saveCreds({ token: res.token, email, orgId: org?.id || null, orgName: org?.name || null, savedAt: new Date().toISOString() })
   ok(`autenticado como ${email}${org ? ` · org: ${org.name} (#${org.id})` : ""}`)
-  log(`${C.dim}token salvo em .mira/credentials.json (gitignored)${C.rst}`)
+}
+
+async function cmdLogin() {
+  // CI/não-interativo: se as duas envs existem, usa senha. Caso contrário, login no navegador.
+  if (process.env.MIRA_EMAIL && process.env.MIRA_PASSWORD) return loginPassword()
+  return loginDevice()
 }
 
 // ---------- status ----------
@@ -306,7 +340,7 @@ async function cmdDiff() {
 // ---------- main ----------
 const HELP = `mira — gerencie seu agente Mirá Connect via API (config-as-code)
 
-  mira login                 autentica (email+senha por enquanto; em breve: login no navegador)
+  mira login                 autentica no navegador (ou email+senha via env, p/ CI)
   mira status                mostra usuário, org ativa, modelos permitidos e agentes
   mira pull                  baixa a config atual (agente + widget) para os arquivos locais
   mira validate              valida os arquivos locais (offline)
